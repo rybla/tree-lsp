@@ -6,7 +6,7 @@ import Data.Array as Array
 import Data.Traversable (sequence)
 import Effect (Effect)
 import Node.Encoding (Encoding(..))
-import Node.FS.Sync (exists, rmdir, writeTextFile)
+import Node.FS.Sync (exists, writeTextFile)
 import Tlsp.Common (dist_dirpath, public_dirpath)
 import Tlsp.Frontend.Example.Frontend1.Template as Frontend1.Template
 import Tlsp.Node (copyDir, rmDir)
@@ -20,10 +20,10 @@ main = do
   -- void $ execSync $ replaceFormatVars' { public_dirpath, dist_dirpath } "cp -r {{public_dirpath}} {{dist_dirpath}}"
   copyDir { source: public_dirpath, target: dist_dirpath }
 
-  let examples_url = "examples/"
+  let example_url = "example/"
   names_baseurls <- sequence
     [ do
-        let base_url = examples_url <> "frontend1/"
+        let base_url = example_url <> "frontend1/"
         { name } <- Frontend1.Template.main { base_url }
         pure { name, href: base_url }
     ]

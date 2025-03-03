@@ -1,22 +1,33 @@
 module Tlsp.Common where
 
-import Prelude
+import Data.Either.Nested (type (\/))
+import Effect.Aff (Aff)
+import Halogen.HTML (PlainHTML)
+import Tlsp.Data.Expr (Expr)
+import Tlsp.Data.Tree (CursorSkeleton)
+import Utility (todo)
 
-import Data.Generic.Rep (class Generic)
-import Data.List (List)
+--------------------------------------------------------------------------------
 
 dist_dirpath = "./dist/"
 public_dirpath = "./public/"
 
-data Tree a = Tree a (Array (Tree a))
+--------------------------------------------------------------------------------
 
-data PathI = PathI (List Int)
+-- class IsRequest i o | i -> o where 
+--   from_request_url :: 
 
-derive instance Generic PathI _
+-- data Request :: Type -> Type -> Type
+-- data Request a b = Request
 
-data CursorI
-  = PointI PathI
-  | SelectI PathI PathI
+-- request :: forall a b. Request a b -> a -> Aff (PlainHTML \/ b)
+-- request = todo ""
 
-derive instance Generic CursorI _
+--------------------------------------------------------------------------------
 
+type EditorState =
+  { cursor :: CursorSkeleton
+  , expr :: Expr
+  }
+
+type ConsoleMessage = { label :: String, content :: PlainHTML }

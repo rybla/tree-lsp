@@ -1,0 +1,16 @@
+{
+  "name": "tree-lsp",
+  "module": "index.ts",
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "esbuild": "^0.25.0",
+    "purescript": "^0.15.16-4",
+    "spago": "^0.93.43"
+  }
+}

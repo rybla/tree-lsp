@@ -5,6 +5,9 @@ import Prelude
 import Data.Generic.Rep (class Generic)
 import Data.List (List)
 
+dist_dirpath = "./dist/"
+public_dirpath = "./public/"
+
 data Tree a = Tree a (Array (Tree a))
 
 data PathI = PathI (List Int)

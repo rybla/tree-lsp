@@ -32,7 +32,7 @@ component = H.mkComponent { initialState, eval, render }
               tell [ "padding: 1em" ]
               tell [ "background-color: black", "color: white" ]
           ]
-          [ HH.text $ "Frontend Name: " <> state.frontend.name ]
+          [ HH.text $ "frontend: " <> state.frontend.name ]
       , HH.div
           [ style do tell [ "padding: 1em" ] ]
           [ HH.text "{{editor}}" ]

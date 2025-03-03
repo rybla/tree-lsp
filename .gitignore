@@ -178,3 +178,6 @@ dist
 .purs-repl
 .spago
 output
+
+server.js
+template.js

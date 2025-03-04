@@ -58,7 +58,7 @@ make_main backend = do
 
     result <- runExceptT do
       case method /\ url of
-        "POST" /\ "/hello" -> do
+        _ /\ "/hello" -> do
           Stream.writeString out_stream UTF8 "hello from back to front" # void >>> liftEffect
 
         "POST" /\ _ | Just name <- stripPrefix (Pattern "/tlsp/") url -> do
@@ -86,9 +86,6 @@ make_main backend = do
           Stream.writeString out_stream UTF8 (toJsonString response) # void >>> liftEffect
 
           pure unit
-
-        "GET" /\ "/hello" -> do
-          Stream.writeString out_stream UTF8 "hello from back to front" # void >>> liftEffect
 
         "GET" /\ _ -> do
           let { filepath, contentType } = from_url_to_resource url

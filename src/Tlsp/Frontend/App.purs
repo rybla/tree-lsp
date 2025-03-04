@@ -3,22 +3,23 @@ module Tlsp.Frontend.App where
 import Prelude
 
 import Control.Monad.Except (ExceptT, runExceptT)
+import Control.Monad.Trans.Class (lift)
 import Control.Monad.Writer (tell)
+import Data.Argonaut.Decode (fromJsonString)
+import Data.Argonaut.Encode (toJsonString)
 import Data.Either (Either(..))
 import Data.Maybe (Maybe)
 import Data.Unfoldable (none)
 import Effect (Effect)
 import Effect.Aff (Aff)
-import Effect.Aff.Class (class MonadAff, liftAff)
+import Effect.Aff.Class (liftAff)
 import Fetch (Method(..), fetch)
-import Halogen (liftEffect)
 import Halogen as H
 import Halogen.Aff as HA
 import Halogen.HTML (PlainHTML)
 import Halogen.HTML as HH
 import Halogen.VDom.Driver as HVD
-import JS.Fetch.RequestMode (RequestMode(..))
-import Tlsp.Common (EditorState)
+import Tlsp.Common (EditorState, Hello(..), Request(..), Response)
 import Tlsp.Frontend.Common (style)
 import Tlsp.Frontend.Console as Console
 import Tlsp.Frontend.Spec (Frontend)
@@ -33,7 +34,7 @@ make_main frontend = HA.runHalogenAff (HVD.runUI component frontend =<< HA.await
 
 type HM' = ExceptT PlainHTML HM
 
-runHM' :: forall a. HM' Unit -> HM Unit
+runHM' :: HM' Unit -> HM Unit
 runHM' m = runExceptT m >>= case _ of
   Left err -> logConsole "error" err
   Right _ -> pure unit
@@ -73,19 +74,19 @@ component = H.mkComponent { initialState, eval, render }
     }
 
   handleAction :: Action -> HM Unit
-  handleAction Initialize = do
-    logConsole "test" $ HH.text $ "begin fetch /tlsp/test"
-    { text } <-
-      fetch "/tlsp/test"
+  handleAction Initialize = runHM' do
+    request :: Request <- HelloRequest (Hello "this is a hello") # pure
+    logConsole "test" (HH.text $ "fetch /tlsp/hello-goodbye <= " <> show request) # lift
+    result <-
+      fetch "/tlsp/hello-goodbye"
         { method: POST
-        , mode: SameOrigin
-        , headers: { "Content-Type": "text/plain" }
-        , body: "hello from front to back"
+        , headers: { "Content-Type": "application/json" }
+        , body: toJsonString request
         } # liftAff
-    logConsole "test" $ HH.text $ "end fetch /tlsp/test"
-    str <- text # liftAff
-    logConsole "test" $ HH.text $ "fetch /tlsp/test response: " <> str
-    -- response <- request ?a ?a # liftAff
+    str <- result.text # liftAff
+    response :: _ Response <- fromJsonString str # pure
+    logConsole "test" (HH.text $ "fetch /tlsp/hello-goodbye => " <> show response) # lift
+
     pure unit
 
   render state =
@@ -105,4 +106,6 @@ component = H.mkComponent { initialState, eval, render }
 
 --------------------------------------------------------------------------------
 
+logConsole :: String -> PlainHTML -> HM Unit
 logConsole label content = H.tell (Proxy @"console") unit $ Console.AddMessage { label, content }
+

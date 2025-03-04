@@ -30,6 +30,8 @@ replaceFormatVars sigma = go (Map.toUnfoldable sigma)
 replaceFormatVars' ∷ forall r. Homogeneous r String ⇒ Record r → String → String
 replaceFormatVars' sigma = replaceFormatVars (fromHomogeneousToMap sigma)
 
+format = replaceFormatVars'
+
 fromHomogeneousToMap :: forall r a. Homogeneous r a => Record r -> Map String a
 fromHomogeneousToMap r = r
   # Object.fromHomogeneous

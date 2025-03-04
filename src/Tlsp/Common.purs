@@ -31,3 +31,4 @@ type EditorState =
   }
 
 type ConsoleMessage = { label :: String, content :: PlainHTML }
+

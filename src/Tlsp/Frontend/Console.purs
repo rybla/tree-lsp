@@ -62,12 +62,14 @@ component = H.mkComponent { initialState, eval, render }
       , HHK.div
           [ style do
               tell [ "overflow-y: scroll" ]
-              tell [ "display: flex", "flex-direction: column" ]
+              tell [ "padding: 0.5em" ]
+              tell [ "display: flex", "flex-direction: column", "gap: 0.5em" ]
           ] $ fold
           [ state.messages # mapWithIndex \i m ->
               Tuple (show i) $
                 HH.div
                   [ style do
+                      tell [ "box-shadow: 0 0 0 1px black inset" ]
                       tell [ "display: flex", "flex-direction: row" ]
                   ]
                   [ HH.div

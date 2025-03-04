@@ -5,18 +5,16 @@ import Prelude
 import Data.Argonaut (class DecodeJson, class EncodeJson)
 import Data.Argonaut.Decode.Generic (genericDecodeJson)
 import Data.Argonaut.Encode.Generic (genericEncodeJson)
-import Data.Either.Nested (type (\/))
 import Data.Generic.Rep (class Generic)
 import Data.Maybe (Maybe)
 import Data.Newtype (class Newtype)
 import Data.Show.Generic (genericShow)
 import Data.Symbol (class IsSymbol)
 import Data.Unfoldable (none)
-import Effect.Aff (Aff)
 import Halogen.HTML (PlainHTML)
 import Tlsp.Data.Expr (Expr)
 import Tlsp.Data.Tree (CursorSkeleton)
-import Utility (todo)
+import Type.Proxy (Proxy)
 
 --------------------------------------------------------------------------------
 
@@ -26,7 +24,7 @@ public_dirpath = "./public/"
 --------------------------------------------------------------------------------
 
 data Request
-  = HelloRequest Hello
+  = HelloRequest HelloInput
   | OtherRequest
 
 derive instance Generic Request _
@@ -41,7 +39,7 @@ instance DecodeJson Request where
   decodeJson x = genericDecodeJson x
 
 data Response
-  = GoodbyeResponse Goodbye
+  = HelloResponse HelloOutput
   | OtherResponse
 
 derive instance Generic Response _
@@ -58,37 +56,39 @@ instance DecodeJson Response where
 --------------------------------------------------------------------------------
 
 class (IsSymbol name, Show i, Show o) <= BackendCapability (name :: Symbol) i o | name -> i o where
-  toRequest :: i -> Request
-  fromRequest :: Request -> Maybe i
-  toResponse :: o -> Response
-  fromResponse :: Response -> Maybe o
+  toRequest :: Proxy name -> i -> Request
+  fromRequest :: Proxy name -> Request -> Maybe i
+  toResponse :: Proxy name -> o -> Response
+  fromResponse :: Proxy name -> Response -> Maybe o
 
-instance BackendCapability "hello-goodbye" Hello Goodbye where
-  toRequest = HelloRequest
+--------------------------------------------------------------------------------
 
-  fromRequest (HelloRequest x) = pure x
-  fromRequest _ = none
+instance BackendCapability "Hello" HelloInput HelloOutput where
+  toRequest _ = HelloRequest
 
-  toResponse = GoodbyeResponse
+  fromRequest _ (HelloRequest x) = pure x
+  fromRequest _ _ = none
 
-  fromResponse (GoodbyeResponse x) = pure x
-  fromResponse _ = none
+  toResponse _ = HelloResponse
 
-newtype Hello = Hello String
+  fromResponse _ (HelloResponse x) = pure x
+  fromResponse _ _ = none
 
-derive instance Generic Hello _
-derive instance Newtype Hello _
-derive newtype instance Show Hello
-derive newtype instance EncodeJson Hello
-derive newtype instance DecodeJson Hello
+newtype HelloInput = HelloInput String
 
-newtype Goodbye = Goodbye String
+derive instance Generic HelloInput _
+derive instance Newtype HelloInput _
+derive newtype instance Show HelloInput
+derive newtype instance EncodeJson HelloInput
+derive newtype instance DecodeJson HelloInput
 
-derive instance Generic Goodbye _
-derive instance Newtype Goodbye _
-derive newtype instance Show Goodbye
-derive newtype instance EncodeJson Goodbye
-derive newtype instance DecodeJson Goodbye
+newtype HelloOutput = HelloOutput String
+
+derive instance Generic HelloOutput _
+derive instance Newtype HelloOutput _
+derive newtype instance Show HelloOutput
+derive newtype instance EncodeJson HelloOutput
+derive newtype instance DecodeJson HelloOutput
 
 --------------------------------------------------------------------------------
 

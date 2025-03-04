@@ -10,10 +10,10 @@ import Data.Argonaut.Encode (toJsonString)
 import Data.Either (Either(..), either)
 import Data.Either.Nested (type (\/))
 import Data.List (List(..), (:))
-import Data.List as List
-import Data.Maybe (Maybe(..), isJust)
+import Data.Maybe (Maybe(..), isJust, maybe)
 import Data.String (Pattern(..), stripPrefix)
 import Data.String as String
+import Data.Symbol (reflectSymbol)
 import Data.Tuple.Nested ((/\))
 import Effect (Effect)
 import Effect.Aff (Aff, throwError)
@@ -32,8 +32,8 @@ import Node.HTTP.Types (HttpServer, IMServer, IncomingMessage, ServerResponse)
 import Node.Net.Server (listenTcp, listeningH)
 import Node.Path (FilePath)
 import Node.Stream as Stream
-import Tlsp.Backend.Impl (handleBackendCapability')
-import Tlsp.Backend.Spec (Backend)
+import Tlsp.Backend.Spec (Backend, unBackendCapabilityHandler)
+import Tlsp.Common (fromRequest, toResponse)
 import Tlsp.Common as Tlsp
 import Utility (format)
 
@@ -77,7 +77,7 @@ make_main backend = do
               # void >>> liftEffect
             throwError serverError_StatusCode
 
-          response :: Tlsp.Response <- handleRequest name request # runExceptT # liftAff >>= flip either pure \err -> do
+          response :: Tlsp.Response <- handleRequest backend name request # runExceptT # liftAff >>= flip either pure \err -> do
             Stream.writeString out_stream UTF8
               ("Encountered error when handling request: {{err}}" # format { err })
               # void >>> liftEffect
@@ -115,18 +115,16 @@ make_main backend = do
 
 --------------------------------------------------------------------------------
 
-handleRequest :: String -> Tlsp.Request -> ExceptT String Aff Tlsp.Response
-handleRequest name req = go capabilities
+handleRequest :: Backend -> String -> Tlsp.Request -> ExceptT String Aff Tlsp.Response
+handleRequest backend name req = go backend.handlers
   where
-  go :: List (String -> Maybe (Tlsp.Request -> ExceptT String Aff Tlsp.Response)) -> ExceptT String Aff Tlsp.Response
   go Nil = throwError $ "unimplemented request: " <> toJsonString req
-  go (k : mks) = case k name of
-    Nothing -> go mks
-    Just k' -> k' req
-
-  capabilities = List.fromFoldable
-    [ handleBackendCapability' @"hello-goodbye"
-    ]
+  go (h : hs) = h # unBackendCapabilityHandler \name' k -> case name == reflectSymbol name' of
+    false -> go hs
+    true -> do
+      i <- fromRequest name' req # flip maybe pure do throwError $ "in handleRequest for capability {{name'}}, request is malformed: {{req}}" # format { name, req: show req }
+      o <- k i
+      pure $ toResponse name' o
 
 --------------------------------------------------------------------------------
 

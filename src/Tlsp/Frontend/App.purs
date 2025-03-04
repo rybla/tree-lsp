@@ -20,12 +20,12 @@ import Halogen.Aff as HA
 import Halogen.HTML (PlainHTML)
 import Halogen.HTML as HH
 import Halogen.VDom.Driver as HVD
-import Tlsp.Common (class BackendCapability, EditorState, Hello(..), Request(..), Response, fromResponse, toRequest)
+import Tlsp.Common (class BackendCapability, EditorState, HelloInput(..), fromResponse, toRequest)
 import Tlsp.Frontend.Common (style)
 import Tlsp.Frontend.Console as Console
 import Tlsp.Frontend.Spec (Frontend)
 import Type.Prelude (Proxy(..), reflectSymbol)
-import Utility (format, todo)
+import Utility (format)
 
 --------------------------------------------------------------------------------
 
@@ -77,10 +77,11 @@ component = H.mkComponent { initialState, eval, render }
 
   requestBackendCapability :: forall @name i o. BackendCapability name i o => i -> HM' o
   requestBackendCapability i = do
-    let name = reflectSymbol (Proxy @name)
+    let p_name = Proxy @name
+    let name = reflectSymbol p_name
     logConsole "test" (code $ "fetch /tlsp/{{name}} <== {{i}}" # format { name, i: show i }) # lift
 
-    let request = toRequest @name i
+    let request = toRequest p_name i
     result <-
       fetch ("/tlsp/" <> name)
         { method: POST
@@ -90,14 +91,14 @@ component = H.mkComponent { initialState, eval, render }
     body <- result.text # liftAff
     when (not result.ok) do throwError $ HH.span_ [ text "in ", code "requestBackendCapability", text ", bad result: ", code (show { statusText: result.statusText, body }) ]
     response <- fromJsonString body # flip either pure \err -> throwError $ HH.span_ [ text "in ", code "requestBackendCapability", text ", failed to decode body: ", code (show { err: printJsonDecodeError err, body }) ]
-    o <- fromResponse @name response # flip maybe pure do throwError $ HH.span_ [ text "in ", code "requestBackendCapability", text ", response is wrong form: ", code (show response) ]
+    o <- fromResponse p_name response # flip maybe pure do throwError $ HH.span_ [ text "in ", code "requestBackendCapability", text ", response is wrong form: ", code (show response) ]
 
     logConsole "test" (code $ "fetch /tlsp/{{name}} ==> {{o}}" # format { name, o: show o }) # lift
     pure o
 
   handleAction :: Action -> HM Unit
   handleAction Initialize = runHM' do
-    _ <- requestBackendCapability @"hello-goodbye" $ Hello "Henry"
+    _ <- requestBackendCapability @"Hello" $ HelloInput "Henry"
     pure unit
 
   render state =

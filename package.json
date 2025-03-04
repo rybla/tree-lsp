@@ -4,7 +4,8 @@
     "build.template": "spago bundle --bundle-type app --platform node --outfile template.js --module Tlsp.Template",
     "template": "bun run build.template && bun template.js",
     "build.backend.server": "spago bundle --bundle-type app --platform node --outfile server.js --module Tlsp.Backend.Example.BackendA.Server",
-    "serve": "bun run build.backend.server && bun server.js"
+    "serve": "bun run build.backend.server && bun server.js",
+    "start": "bun run template && bun run serve"
   },
   "devDependencies": {
     "@types/bun": "latest"

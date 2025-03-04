@@ -57,7 +57,7 @@ instance DecodeJson Response where
 
 --------------------------------------------------------------------------------
 
-class IsSymbol name <= BackendCapability (name :: Symbol) i o | name -> i o where
+class (IsSymbol name, Show i, Show o) <= BackendCapability (name :: Symbol) i o | name -> i o where
   toRequest :: i -> Request
   fromRequest :: Request -> Maybe i
   toResponse :: o -> Response

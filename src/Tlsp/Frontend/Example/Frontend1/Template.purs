@@ -44,6 +44,10 @@ main { base_url } = do
     margin: 0;
     padding: 0;
   }
+
+  code {
+    font-family: monospace;
+  }
   </style>
   </head>
 

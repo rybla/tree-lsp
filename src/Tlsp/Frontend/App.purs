@@ -2,13 +2,14 @@ module Tlsp.Frontend.App where
 
 import Prelude
 
+import Control.Monad.Error.Class (throwError)
 import Control.Monad.Except (ExceptT, runExceptT)
 import Control.Monad.Trans.Class (lift)
 import Control.Monad.Writer (tell)
-import Data.Argonaut.Decode (fromJsonString)
+import Data.Argonaut.Decode (fromJsonString, printJsonDecodeError)
 import Data.Argonaut.Encode (toJsonString)
-import Data.Either (Either(..))
-import Data.Maybe (Maybe)
+import Data.Either (Either(..), either)
+import Data.Maybe (Maybe, maybe)
 import Data.Unfoldable (none)
 import Effect (Effect)
 import Effect.Aff (Aff)
@@ -19,11 +20,12 @@ import Halogen.Aff as HA
 import Halogen.HTML (PlainHTML)
 import Halogen.HTML as HH
 import Halogen.VDom.Driver as HVD
-import Tlsp.Common (EditorState, Hello(..), Request(..), Response)
+import Tlsp.Common (class BackendCapability, EditorState, Hello(..), Request(..), Response, fromResponse, toRequest)
 import Tlsp.Frontend.Common (style)
 import Tlsp.Frontend.Console as Console
 import Tlsp.Frontend.Spec (Frontend)
-import Type.Prelude (Proxy(..))
+import Type.Prelude (Proxy(..), reflectSymbol)
+import Utility (format, todo)
 
 --------------------------------------------------------------------------------
 
@@ -73,20 +75,29 @@ component = H.mkComponent { initialState, eval, render }
     , handleAction = handleAction
     }
 
-  handleAction :: Action -> HM Unit
-  handleAction Initialize = runHM' do
-    request :: Request <- HelloRequest (Hello "this is a hello") # pure
-    logConsole "test" (HH.text $ "fetch /tlsp/hello-goodbye <= " <> show request) # lift
+  requestBackendCapability :: forall @name i o. BackendCapability name i o => i -> HM' o
+  requestBackendCapability i = do
+    let name = reflectSymbol (Proxy @name)
+    logConsole "test" (code $ "fetch /tlsp/{{name}} <== {{i}}" # format { name, i: show i }) # lift
+
+    let request = toRequest @name i
     result <-
-      fetch "/tlsp/hello-goodbye"
+      fetch ("/tlsp/" <> name)
         { method: POST
         , headers: { "Content-Type": "application/json" }
         , body: toJsonString request
         } # liftAff
-    str <- result.text # liftAff
-    response :: _ Response <- fromJsonString str # pure
-    logConsole "test" (HH.text $ "fetch /tlsp/hello-goodbye => " <> show response) # lift
+    body <- result.text # liftAff
+    when (not result.ok) do throwError $ HH.span_ [ text "in ", code "requestBackendCapability", text ", bad result: ", code (show { statusText: result.statusText, body }) ]
+    response <- fromJsonString body # flip either pure \err -> throwError $ HH.span_ [ text "in ", code "requestBackendCapability", text ", failed to decode body: ", code (show { err: printJsonDecodeError err, body }) ]
+    o <- fromResponse @name response # flip maybe pure do throwError $ HH.span_ [ text "in ", code "requestBackendCapability", text ", response is wrong form: ", code (show response) ]
 
+    logConsole "test" (code $ "fetch /tlsp/{{name}} ==> {{o}}" # format { name, o: show o }) # lift
+    pure o
+
+  handleAction :: Action -> HM Unit
+  handleAction Initialize = runHM' do
+    _ <- requestBackendCapability @"hello-goodbye" $ Hello "Henry"
     pure unit
 
   render state =
@@ -109,3 +120,5 @@ component = H.mkComponent { initialState, eval, render }
 logConsole :: String -> PlainHTML -> HM Unit
 logConsole label content = H.tell (Proxy @"console") unit $ Console.AddMessage { label, content }
 
+code str = HH.code_ [ HH.text str ]
+text str = HH.text str

@@ -32,5 +32,5 @@ handleBackendCapability' name' = do
 
 instance BackendCapabilityImpl "hello-goodbye" Hello Goodbye where
   handleBackendCapability (Hello str) = do
-    pure $ Goodbye str
+    pure $ Goodbye $ "Goodbye, " <> str
 
